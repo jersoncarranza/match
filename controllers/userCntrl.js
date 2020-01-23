@@ -3,6 +3,8 @@ var User = require('../models/user');
 var bcrypt = require('bcrypt-nodejs');
 var moment = require('moment');
 var jwt  = require('../services/jwt');
+var conf    = require('../conf.json');
+
 
 function saveUser(req, res){
 
@@ -44,7 +46,6 @@ function saveUser(req, res){
 
 }
 
-    //  Buscar entidades Entidade Universidades
     async function FindEmail(email) {
     var query = {'email':email};
     var data ;
@@ -68,7 +69,7 @@ function saveUser(req, res){
     return Promise.resolve(findEntity);
     }
 
-    async function saveUserMatch(User) {//Los match que le dio like el usuario (Con el fin que no se repita)
+    async function saveUserMatch(User) {
         let saveUser =await User
             .save()
             .then(savedObj => {
@@ -151,7 +152,7 @@ function saveUser(req, res){
     }
         
     // Edicion de datos de usuario
-function updateUser(req, res){
+    function updateUser(req, res){
     var userId= req.params.id;
     var update= req.body;
     // borrar propiedad password
@@ -163,13 +164,58 @@ function updateUser(req, res){
             if(err) return res.status(505).send({message:'No tienes permiso para actualizar los datos del usuario'});
             if(!userUpdated) return res.status(404).send({message:'No se ha podido actualizar el usuario'});
             return res.status(200).send({user:userUpdated});
+        }); 
+    }
+
+
+    /**Cloudinay**/
+function uploadCloudinary (req, res){
+    var userId = req.params.id;
+    var file_path = req.files.image.path;
+    var file_split = file_path.split('\\');
+    var file_name = file_split[2];
+    var ext_split = file_name.split('\.');
+    var file_ext = ext_split[1];
+
+    cloudinary.config({ 
+        cloud_name: conf.cloudinary.name ,  
+        api_key: conf.cloudinary.key, 
+        api_secret: conf.cloudinary.secret,
+        uploadOptions: {
+            folder: 'fotos'
+        }
+    });
+ 
+    cloudinary.uploader.upload(file_path,  function(result) { 
+            if(result != null){
+            
+            var format = result.format;
+            var namepublic = result.public_id;
+            var urlimage = namepublic + "."+format;
+            var version = result.version;//.toString();
+            urlimage = "v"+version+"/"+urlimage;
+            
+            User.findByIdAndUpdate(userId,
+                {image:urlimage},
+                {new: true},
+                (err, userUpdated) =>{
+                    if(err) return res.status(500).send({message:'No tienes permiso para actualizar los datos del usuario'})
+                    if(!userUpdated) return res.status(404).send({message:'No se ha podido actualizar el usuario'});
+                    return res.status(200).send({user:userUpdated});        
+                })
+            }else{
+                return res.status(200).send({user:'error',status:0}); 
+            }
+                
         });
-     
-}
+
+    }
+
 
     module.exports = {
         saveUser,
         loginUser,
         editPreferenciaSexo,
-        updateUser
+        updateUser,
+        uploadCloudinary
     }

@@ -3,6 +3,8 @@ var express = require('express');
 var app = express();
 var bodyParser = require('body-parser');
 var user_routes = require('./routes/user');
+var match_routes= require('./routes/match');
+var point_routes = require('./routes/point');
 
 // middlewares -- antes de llegar al controlador
 app.use(bodyParser.urlencoded({extended:false}));
@@ -18,5 +20,7 @@ app.use((req, res, next) => {
 
 
 app.use('/user',user_routes);
+app.use('/match', match_routes);
+app.use('/point',  point_routes);
 
 module.exports = app;
